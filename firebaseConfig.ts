@@ -2,15 +2,16 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Config from Firebase Console
+// Firebase配置 - 使用环境变量
+// 在Zeabur或其他平台部署时，请设置相应的环境变量
 const firebaseConfig = {
-  apiKey: "AIzaSyA7LXncqFce7GgChb8f-3nGnAxaEyh6hO4",
-  authDomain: "italien-res-bc870.firebaseapp.com",
-  projectId: "italien-res-bc870",
-  storageBucket: "italien-res-bc870.firebasestorage.app",
-  messagingSenderId: "944773845418",
-  appId: "1:944773845418:web:c797e22590c5a8ae8f5bd3",
-  measurementId: "G-HY0G93SSMP"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyA7LXncqFce7GgChb8f-3nGnAxaEyh6hO4",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "italien-res-bc870.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "italien-res-bc870",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "italien-res-bc870.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "944773845418",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:944773845418:web:c797e22590c5a8ae8f5bd3",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-HY0G93SSMP"
 };
 
 // Initialize Firebase
