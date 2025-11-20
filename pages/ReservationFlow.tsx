@@ -13,7 +13,7 @@ export const ReservationFlow: React.FC = () => {
 
   // Step State
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  
+
   // Form Data
   const [date, setDate] = useState('');
   const [partySize, setPartySize] = useState(2);
@@ -30,6 +30,17 @@ export const ReservationFlow: React.FC = () => {
   // Helper to get current date YYYY-MM-DD
   const today = new Date().toISOString().split('T')[0];
 
+  // Helper: Convert "HH:MM" to minutes
+  const timeToMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // Helper: Check if two time ranges overlap
+  const checkOverlap = (start1: number, end1: number, start2: number, end2: number): boolean => {
+    return start1 < end2 && start2 < end1;
+  };
+
   // Effect: Check availability when Date or Time changes
   useEffect(() => {
     const fetchAvailability = async () => {
@@ -40,22 +51,31 @@ export const ReservationFlow: React.FC = () => {
       setSelectedTableNum(null); // Reset selection on time change
 
       try {
-        const timeString = TIME_SLOTS.find(ts => ts.id === timeSlotId)?.time;
-        if (!timeString) return;
+        const selectedTime = TIME_SLOTS.find(ts => ts.id === timeSlotId)?.time;
+        if (!selectedTime) return;
 
-        // Query: Find reservations for this date and time
-        // Note: In a real production app, we might check overlapping ranges, 
-        // but here we assume fixed 2h slots aligned with start times for simplicity 
-        // or exact match prevention.
+        // Query: Find ALL confirmed reservations for this date
         const q = query(
           collection(db, 'reservations'),
           where('date', '==', date),
-          where('timeSlot', '==', timeString),
           where('status', '==', 'confirmed')
         );
 
         const querySnapshot = await getDocs(q);
-        const booked = querySnapshot.docs.map(doc => doc.data().tableNumber);
+        const allReservations = querySnapshot.docs.map(doc => doc.data());
+
+        // Filter for overlaps
+        const requestStart = timeToMinutes(selectedTime);
+        const requestEnd = requestStart + 120; // 120 minutes duration
+
+        const booked = allReservations
+          .filter(res => {
+            const resStart = timeToMinutes(res.timeSlot);
+            const resEnd = resStart + (res.duration || 120);
+            return checkOverlap(requestStart, requestEnd, resStart, resEnd);
+          })
+          .map(res => res.tableNumber);
+
         setBookedTableNumbers(booked);
       } catch (err) {
         console.error("Error fetching availability:", err);
@@ -88,19 +108,29 @@ export const ReservationFlow: React.FC = () => {
     setError('');
 
     try {
-      const timeString = TIME_SLOTS.find(ts => ts.id === timeSlotId)?.time;
-      
-      // Final Double Check (Race Condition mitigation)
+      const selectedTime = TIME_SLOTS.find(ts => ts.id === timeSlotId)?.time;
+      if (!selectedTime) throw new Error("Ungültige Zeit.");
+
+      // Final Double Check (Race Condition mitigation) with Overlap Logic
       const q = query(
         collection(db, 'reservations'),
         where('date', '==', date),
-        where('timeSlot', '==', timeString),
-        where('tableNumber', '==', selectedTableNum),
         where('status', '==', 'confirmed')
       );
       const checkSnap = await getDocs(q);
-      
-      if (!checkSnap.empty) {
+      const allReservations = checkSnap.docs.map(doc => doc.data());
+
+      const requestStart = timeToMinutes(selectedTime);
+      const requestEnd = requestStart + 120;
+
+      const isTableTaken = allReservations.some(res => {
+        if (res.tableNumber !== selectedTableNum) return false;
+        const resStart = timeToMinutes(res.timeSlot);
+        const resEnd = resStart + (res.duration || 120);
+        return checkOverlap(requestStart, requestEnd, resStart, resEnd);
+      });
+
+      if (isTableTaken) {
         throw new Error("Dieser Tisch wurde gerade eben reserviert. Bitte wählen Sie einen anderen.");
       }
 
@@ -110,7 +140,7 @@ export const ReservationFlow: React.FC = () => {
         userEmail: currentUser.email,
         tableNumber: selectedTableNum,
         date: date,
-        timeSlot: timeString,
+        timeSlot: selectedTime,
         partySize: partySize,
         duration: 120,
         status: 'confirmed',
@@ -139,13 +169,13 @@ export const ReservationFlow: React.FC = () => {
             Ihre Reservierung wurde bestätigt. Wir haben eine Bestätigungs-E-Mail an {currentUser?.email} gesendet.
           </p>
           <div className="bg-stone-50 p-4 rounded-md mb-8 text-left inline-block min-w-[250px]">
-             <p><strong>Datum:</strong> {date.split('-').reverse().join('.')}</p>
-             <p><strong>Zeit:</strong> {TIME_SLOTS.find(t => t.id === timeSlotId)?.time} Uhr</p>
-             <p><strong>Tisch:</strong> Nr. {selectedTableNum}</p>
-             <p><strong>Personen:</strong> {partySize}</p>
+            <p><strong>Datum:</strong> {date.split('-').reverse().join('.')}</p>
+            <p><strong>Zeit:</strong> {TIME_SLOTS.find(t => t.id === timeSlotId)?.time} Uhr</p>
+            <p><strong>Tisch:</strong> Nr. {selectedTableNum}</p>
+            <p><strong>Personen:</strong> {partySize}</p>
           </div>
           <div>
-            <button 
+            <button
               onClick={() => navigate('/dashboard')}
               className="w-full bg-italian-green text-white font-bold py-3 px-6 rounded-md hover:bg-green-700 transition"
             >
@@ -189,18 +219,18 @@ export const ReservationFlow: React.FC = () => {
 
         <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
           <div className="p-6 md:p-8">
-            
+
             {/* STEP 1: Date & People */}
             <div className={`${step !== 1 ? 'hidden' : 'block'} space-y-6`}>
               <h2 className="text-2xl font-serif font-bold text-italian-green flex items-center">
                 <Calendar className="mr-2" /> Wählen Sie Datum & Personen
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Datum</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     min={today}
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
@@ -209,19 +239,19 @@ export const ReservationFlow: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Personenanzahl</label>
-                  <select 
+                  <select
                     value={partySize}
                     onChange={(e) => setPartySize(Number(e.target.value))}
                     className="w-full p-3 border border-gray-300 rounded-md focus:ring-italian-green focus:border-italian-green"
                   >
-                    {[2,3,4,5,6].map(n => (
+                    {[2, 3, 4, 5, 6].map(n => (
                       <option key={n} value={n}>{n} Personen</option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={() => date && setStep(2)}
                 disabled={!date}
                 className="w-full bg-italian-red text-white font-bold py-3 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -233,12 +263,12 @@ export const ReservationFlow: React.FC = () => {
             {/* STEP 2: Time Slot */}
             <div className={`${step !== 2 ? 'hidden' : 'block'} space-y-6`}>
               <div className="flex justify-between items-center">
-                 <h2 className="text-2xl font-serif font-bold text-italian-green flex items-center">
+                <h2 className="text-2xl font-serif font-bold text-italian-green flex items-center">
                   <Clock className="mr-2" /> Uhrzeit wählen
                 </h2>
                 <button onClick={() => setStep(1)} className="text-sm text-gray-500 hover:underline">Zurück</button>
               </div>
-              
+
               <p className="text-gray-600">Verfügbare Zeiten für {date.split('-').reverse().join('.')} ({partySize} Personen):</p>
 
               <div className="space-y-4">
@@ -273,7 +303,7 @@ export const ReservationFlow: React.FC = () => {
             {/* STEP 3: Table Map & Confirm */}
             <div className={`${step !== 3 ? 'hidden' : 'block'} space-y-6`}>
               <div className="flex justify-between items-center">
-                 <h2 className="text-2xl font-serif font-bold text-italian-green flex items-center">
+                <h2 className="text-2xl font-serif font-bold text-italian-green flex items-center">
                   <Users className="mr-2" /> Tisch wählen
                 </h2>
                 <button onClick={() => setStep(2)} className="text-sm text-gray-500 hover:underline">Zurück</button>
@@ -285,7 +315,7 @@ export const ReservationFlow: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  <TableMap 
+                  <TableMap
                     tables={RESTAURANT_TABLES}
                     bookedTableNumbers={bookedTableNumbers}
                     selectedTableNumber={selectedTableNum}
@@ -296,22 +326,22 @@ export const ReservationFlow: React.FC = () => {
                   {selectedTableNum && (
                     <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg animate-fade-in">
                       <h3 className="font-bold text-italian-dark mb-2">Reservierung abschließen</h3>
-                      
+
                       <div className="mb-4">
-                         <label className="block text-sm font-medium text-gray-700 mb-1">Telefonnummer (für Rückfragen)</label>
-                         <input 
-                            type="tel" 
-                            placeholder="+49 123 45678"
-                            value={contactPhone} 
-                            onChange={e => setContactPhone(e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded"
-                         />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Telefonnummer (für Rückfragen)</label>
+                        <input
+                          type="tel"
+                          placeholder="+49 123 45678"
+                          value={contactPhone}
+                          onChange={e => setContactPhone(e.target.value)}
+                          className="w-full p-2 border border-gray-300 rounded"
+                        />
                       </div>
 
                       {!currentUser && (
-                         <div className="mb-4 text-sm text-red-600">
-                           * Sie müssen angemeldet sein, um die Reservierung abzuschließen.
-                         </div>
+                        <div className="mb-4 text-sm text-red-600">
+                          * Sie müssen angemeldet sein, um die Reservierung abzuschließen.
+                        </div>
                       )}
 
                       <button
