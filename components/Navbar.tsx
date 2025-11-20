@@ -29,16 +29,19 @@ export const Navbar: React.FC = () => {
               <span className="font-serif text-xl font-bold tracking-wider">Bella Vista</span>
             </Link>
           </div>
-          
+
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
               <Link to="/" className="hover:bg-italian-red px-3 py-2 rounded-md text-sm font-medium transition-colors">
                 Startseite
               </Link>
+              <Link to="/menu" className="hover:bg-italian-red px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                Speisekarte
+              </Link>
               <Link to="/reservation" className="bg-italian-white text-italian-green hover:bg-gray-100 px-3 py-2 rounded-md text-sm font-bold transition-colors shadow-md">
                 Tisch Reservieren
               </Link>
-              
+
               {/* Admin Link */}
               {isAdmin && (
                 <Link to="/admin/dashboard" className="flex items-center space-x-1 bg-gray-900 hover:bg-gray-800 px-3 py-2 rounded-md text-sm font-medium transition-colors border border-gray-700">
@@ -65,7 +68,7 @@ export const Navbar: React.FC = () => {
               )}
             </div>
           </div>
-          
+
           <div className="-mr-2 flex md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -84,10 +87,13 @@ export const Navbar: React.FC = () => {
             <Link to="/" onClick={() => setIsOpen(false)} className="block hover:bg-italian-red px-3 py-2 rounded-md text-base font-medium">
               Startseite
             </Link>
+            <Link to="/menu" onClick={() => setIsOpen(false)} className="block hover:bg-italian-red px-3 py-2 rounded-md text-base font-medium">
+              Speisekarte
+            </Link>
             <Link to="/reservation" onClick={() => setIsOpen(false)} className="block bg-italian-white text-italian-green px-3 py-2 rounded-md text-base font-bold">
               Tisch Reservieren
             </Link>
-            
+
             {isAdmin && (
               <Link to="/admin/dashboard" onClick={() => setIsOpen(false)} className="flex items-center space-x-2 bg-gray-900 block px-3 py-2 rounded-md text-base font-medium">
                 <ShieldCheck className="w-4 h-4 text-yellow-500" />

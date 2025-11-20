@@ -6,6 +6,7 @@ import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { ReservationFlow } from './pages/ReservationFlow';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { Menu } from './pages/Menu';
 import { useAuth } from './context/AuthContext';
 
 // Protected Route Wrapper
@@ -33,21 +34,22 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Auth />} />
           <Route path="/reservation" element={<ReservationFlow />} />
-          <Route 
-            path="/dashboard" 
+          <Route path="/menu" element={<Menu />} />
+          <Route
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/dashboard" 
+          <Route
+            path="/admin/dashboard"
             element={
               <AdminRoute>
                 <AdminDashboard />
               </AdminRoute>
-            } 
+            }
           />
         </Routes>
       </Layout>
