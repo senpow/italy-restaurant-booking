@@ -35,3 +35,24 @@ export interface TimeSlot {
   time: string;
   period: 'lunch' | 'dinner';
 }
+
+export interface CartItem {
+  name: string;
+  description: string;
+  price: string;
+  quantity: number;
+}
+
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
+
+export interface Order {
+  id?: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  items: CartItem[];
+  totalAmount: number;
+  status: OrderStatus;
+  createdAt: Timestamp;
+  pickupTime: string;
+}

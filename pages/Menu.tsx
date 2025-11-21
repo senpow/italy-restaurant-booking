@@ -1,4 +1,6 @@
 import React from 'react';
+import { useCart } from '../context/CartContext';
+import { ShoppingBag, Check } from 'lucide-react';
 
 interface MenuItem {
     name: string;
@@ -50,6 +52,26 @@ const menuData: MenuCategory[] = [
 ];
 
 export const Menu: React.FC = () => {
+    const { addToCart } = useCart();
+    const [addedItems, setAddedItems] = React.useState<Set<string>>(new Set());
+
+    const handleAddToCart = (item: MenuItem) => {
+        addToCart({
+            name: item.name,
+            description: item.description,
+            price: item.price
+        });
+
+        setAddedItems(prev => new Set(prev).add(item.name));
+        setTimeout(() => {
+            setAddedItems(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(item.name);
+                return newSet;
+            });
+        }, 1000);
+    };
+
     return (
         <div className="bg-italian-white min-h-screen py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -67,17 +89,42 @@ export const Menu: React.FC = () => {
                                 <h2 className="text-2xl font-serif font-bold text-white text-center">{category.title}</h2>
                             </div>
                             <div className="p-6 space-y-6">
-                                {category.items.map((item, itemIndex) => (
-                                    <div key={itemIndex} className="flex justify-between items-start border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                                        <div className="pr-4">
-                                            <h3 className="text-lg font-bold text-gray-800">{item.name}</h3>
-                                            <p className="text-gray-600 text-sm mt-1">{item.description}</p>
+                                {category.items.map((item, itemIndex) => {
+                                    const isAdded = addedItems.has(item.name);
+                                    return (
+                                        <div key={itemIndex} className="flex justify-between items-start border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                                            <div className="pr-4 flex-grow">
+                                                <h3 className="text-lg font-bold text-gray-800">{item.name}</h3>
+                                                <p className="text-gray-600 text-sm mt-1">{item.description}</p>
+                                            </div>
+                                            <div className="flex flex-col items-end space-y-2">
+                                                <div className="text-italian-red font-bold whitespace-nowrap">
+                                                    {item.price}
+                                                </div>
+                                                <button
+                                                    onClick={() => handleAddToCart(item)}
+                                                    disabled={isAdded}
+                                                    className={`flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold transition-all duration-300 ${isAdded
+                                                        ? 'bg-green-600 text-white scale-105'
+                                                        : 'bg-italian-green text-white hover:bg-green-700'
+                                                        }`}
+                                                >
+                                                    {isAdded ? (
+                                                        <>
+                                                            <Check className="w-3 h-3" />
+                                                            <span>Hinzugefügt</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <ShoppingBag className="w-3 h-3" />
+                                                            <span>Hinzufügen</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="text-italian-red font-bold whitespace-nowrap">
-                                            {item.price}
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     ))}

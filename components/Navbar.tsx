@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { auth } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
-import { Utensils, Menu, X, User, LogOut, ShieldCheck } from 'lucide-react';
+import { Utensils, Menu, X, User, LogOut, ShieldCheck, ShoppingCart } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { currentUser, isAdmin } = useAuth();
+  const { cartCount } = useCart();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -40,6 +42,15 @@ export const Navbar: React.FC = () => {
               </Link>
               <Link to="/reservation" className="bg-italian-white text-italian-green hover:bg-gray-100 px-3 py-2 rounded-md text-sm font-bold transition-colors shadow-md">
                 Tisch Reservieren
+              </Link>
+
+              <Link to="/cart" className="relative hover:bg-italian-red px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                <ShoppingCart className="w-5 h-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-yellow-400 text-italian-green text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
 
               {/* Admin Link */}
@@ -92,6 +103,10 @@ export const Navbar: React.FC = () => {
             </Link>
             <Link to="/reservation" onClick={() => setIsOpen(false)} className="block bg-italian-white text-italian-green px-3 py-2 rounded-md text-base font-bold">
               Tisch Reservieren
+            </Link>
+            <Link to="/cart" onClick={() => setIsOpen(false)} className="flex items-center space-x-2 hover:bg-italian-red px-3 py-2 rounded-md text-base font-medium">
+              <ShoppingCart className="w-5 h-5" />
+              <span>Warenkorb ({cartCount})</span>
             </Link>
 
             {isAdmin && (
